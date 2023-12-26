@@ -70,19 +70,10 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
 
     const stateMembersTypes = [
         // nextStep
-        {
-            type: "TSPropertySignature",
-            key: {
-                type: "Identifier",
-                name: "nextStep"
-            },
-            typeAnnotation: {
-                type: "TypeAnnotation",
-                typeAnnotation: {
-                    type: "TSNumberKeyword"
-                },
-            },
-        },
+        t.tsPropertySignature(
+            t.identifier("nextStep"),
+            t.tsTypeAnnotation(t.tsNumberKeyword()),
+        ),
         // local variables
         ...generatorComponents.localVariables.flatMap(localVar => localVar.declarations).map((declaration) => ({
             type: "TSPropertySignature",
@@ -139,20 +130,11 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
      */
     const localVariableToStateAssignment = (declarator: t.VariableDeclarator) => {
         if (declarator.init?.type === "NumericLiteral") {
-            return {
-                type: "NumericLiteral",
-                value: (declarator.init as t.NumericLiteral).value,
-            }
+            return t.numericLiteral((declarator.init as t.NumericLiteral).value);
         } else if (declarator.init?.type === "StringLiteral") {
-            return {
-                type: "StringLiteral",
-                value: (declarator.init as t.StringLiteral).value,
-            }
+            return t.stringLiteral((declarator.init as t.StringLiteral).value);
         } else if (declarator.init?.type === "Identifier") {
-            return {
-                type: "Identifier",
-                name: (declarator.init as t.Identifier).name,
-            }
+            return t.identifier((declarator.init as t.Identifier).name);
         } else {
             throw new Error("Unsupported local variable declaration to state assignment conversion. " + JSON.stringify(declarator, null, 4));
         }

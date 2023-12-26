@@ -5,9 +5,8 @@
  * https://www.notion.so/Typescript-Coroutine-to-Statemachine-Compiler-11f327d2824f477e8467ced8e77f5c81
  */
 import { parse } from "@babel/parser";
-import traverse from "@babel/traverse";
 import * as fs from 'fs';
-import { parseGenerator, parseGenerators } from "./generator-parser";
+import { parseGenerators } from "./generator-parser";
 import { generateSerializableStateMachine } from "./generate-state-machine";
 
 // Parse the file argument as an AST
