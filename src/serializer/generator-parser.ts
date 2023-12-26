@@ -148,7 +148,6 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
     // Limitation #2: Assume perfectly typed Generator<YieldedType, ReturnType, NextStepParamType>
     const [yieldType, returnType, nextStepParamType] = ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters!.params;
 
-
     const localVariables = generator.body.body.filter((node) => t.isVariableDeclaration(node)).map((node) => node as t.VariableDeclaration);
 
     const steps: PreYieldStep[] = []
@@ -162,7 +161,6 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
             steps.push({
                 preYieldStatements: currentPreYieldStatements,
                 yieldStatement: statement,
-                // TODO: unclear what the yielded value is
                 yieldedValue: yieldedValue
             });
             currentPreYieldStatements = [];

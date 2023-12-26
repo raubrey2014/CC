@@ -4,6 +4,67 @@ import * as t from "@babel/types";
 
 const upperFirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
+// TODO: much more work needed
+const replaceYieldInStatementWithValue = (node: t.Node): t.Node => {
+    if (t.isYieldExpression(node)) {
+        return t.identifier("value");
+    }
+    if (t.isExpressionStatement(node)) {
+        return t.expressionStatement(
+            replaceYieldInStatementWithValue(node.expression) as t.Expression
+        )
+    }
+    if (t.isAssignmentExpression(node)) {
+        return t.assignmentExpression(
+            node.operator,
+            replaceYieldInStatementWithValue(node.left) as t.OptionalMemberExpression | t.LVal,
+            replaceYieldInStatementWithValue(node.right) as t.Expression,
+        )
+    }
+    return node;
+}
+
+const replaceLocalVariableWithStateAssignment = (node: t.Node): t.Node[] => {
+    console.log("replacing", node)
+
+    if (t.isVariableDeclaration(node)) {
+        return node.declarations.map((declaration) => {
+            return t.expressionStatement(
+                t.assignmentExpression(
+                    "=",
+                    t.memberExpression(
+                        t.memberExpression(
+                            t.thisExpression(),
+                            t.identifier("state"),
+                        ),
+                        t.identifier((declaration.id as t.Identifier).name),
+                    ),
+                    declaration.init as t.Expression,
+                )
+            );
+        });
+    }
+    if (t.isExpressionStatement(node) && t.isAssignmentExpression(node.expression)) {
+        return [
+            t.expressionStatement(
+                t.assignmentExpression(
+                    node.expression.operator,
+                    t.memberExpression(
+                        t.memberExpression(
+                            t.thisExpression(),
+                            t.identifier("state"),
+                        ),
+                        t.identifier((node.expression.left as t.Identifier).name),
+                    ),
+                    node.expression.right as t.Expression,
+                )
+            )
+        ]
+    }
+
+    return [node];
+}
+
 /**
  * Generates a Generator class (as a code string) from the parsed components of a generator function.
  */
@@ -79,7 +140,6 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
      * state.a = 0;
      */
     const localVariableToStateAssignment = (declarator: t.VariableDeclarator) => {
-        // console.log("Converting: ", JSON.stringify(declarator, null, 4));
         if (declarator.init?.type === "NumericLiteral") {
             return {
                 type: "NumericLiteral",
@@ -139,74 +199,76 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
     }
 
     const stateMachineCases = generatorComponents.steps.map((step, index) => {
-
+        const isLastStep = index === generatorComponents.steps.length - 1;
+        const incrementNextStepStatement = {
+            type: "ExpressionStatement",
+            expression: {
+                type: "AssignmentExpression",
+                operator: "=",
+                left: {
+                    type: "MemberExpression",
+                    object: {
+                        type: "MemberExpression",
+                        object: {
+                            type: "ThisExpression",
+                        },
+                        property: {
+                            type: "Identifier",
+                            name: "state"
+                        },
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: "nextStep"
+                    }
+                },
+                right: {
+                    type: "NumericLiteral",
+                    value: index + 1,
+                },
+            },
+        };
+        const returnStatement = {
+            type: "ReturnStatement",
+            "argument": {
+                "type": "ObjectExpression",
+                "properties": [
+                    {
+                        "type": "ObjectProperty",
+                        "key": {
+                            "type": "Identifier",
+                            "name": "value"
+                        },
+                        "value": step.yieldedValue || null
+                    },
+                    {
+                        "type": "ObjectProperty",
+                        "key": {
+                            "type": "Identifier",
+                            "name": "done"
+                        },
+                        "value": {
+                            "type": "BooleanLiteral",
+                            "value": isLastStep
+                        }
+                    }
+                ]
+            }
+        };
+        const replacedYieldedExpression =
+            replaceLocalVariableWithStateAssignment(replaceYieldInStatementWithValue(step.yieldStatement));
+        const consequent = isLastStep ?
+            [...step.preYieldStatements.flatMap(replaceLocalVariableWithStateAssignment), ...replacedYieldedExpression, returnStatement] :
+            [...step.preYieldStatements.flatMap(replaceLocalVariableWithStateAssignment), ...replacedYieldedExpression, incrementNextStepStatement, returnStatement];
         return {
             type: "SwitchCase",
             test: {
                 type: "NumericLiteral",
                 value: index,
             },
-            consequent: [
-                {
-                    type: "ExpressionStatement",
-                    expression: {
-                        type: "AssignmentExpression",
-                        operator: "=",
-                        left: {
-                            type: "MemberExpression",
-                            object: {
-                                type: "MemberExpression",
-                                object: {
-                                    type: "ThisExpression",
-                                },
-                                property: {
-                                    type: "Identifier",
-                                    name: "state"
-                                },
-                            },
-                            property: {
-                                type: "Identifier",
-                                name: "nextStep"
-                            }
-                        },
-                        right: {
-                            type: "NumericLiteral",
-                            value: index + 1,
-                        },
-                    },
-                },
-                ...step.preYieldStatements,
-                {
-                    type: "ReturnStatement",
-                    "argument": {
-                        "type": "ObjectExpression",
-                        "properties": [
-                            {
-                                "type": "ObjectProperty",
-                                "key": {
-                                    "type": "Identifier",
-                                    "name": "value"
-                                },
-                                "value": step.yieldedValue || null
-                            },
-                            {
-                                "type": "ObjectProperty",
-                                "key": {
-                                    "type": "Identifier",
-                                    "name": "done"
-                                },
-                                "value": {
-                                    "type": "BooleanLiteral",
-                                    "value": index === generatorComponents.steps.length - 1
-                                }
-                            }
-                        ]
-                    }
-                }
-            ],
+            consequent: consequent,
         }
     });
-
 
     const ast = {
         type: "File",
