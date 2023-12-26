@@ -156,7 +156,6 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
         // Check if expression contains a yield expression
         if (doesNodeContainYield(statement)) {
             const yieldedValue = yieldArgumentInNode(statement);
-            console.log("Found yield statement: ", yieldedValue, "in", statement);
             // If so, add the current pre-yield statements, the yield expression, and the yielded value to the steps
             steps.push({
                 preYieldStatements: currentPreYieldStatements,
@@ -178,4 +177,14 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
         localVariables,
         steps,
     };
+}
+
+const isGenerator = (node: t.Node): boolean => {
+    return t.isFunctionDeclaration(node) && node.generator;
+}
+
+export function parseGenerators(ast: t.File): GeneratorComponents[] {
+    const generators = ast.program.body.filter(isGenerator).map((node) => node as t.FunctionDeclaration);
+    return generators.map(parseGenerator);
+
 }

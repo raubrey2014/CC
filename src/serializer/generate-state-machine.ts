@@ -25,8 +25,6 @@ const replaceYieldInStatementWithValue = (node: t.Node): t.Node => {
 }
 
 const replaceLocalVariableWithStateAssignment = (node: t.Node): t.Node[] => {
-    console.log("replacing", node)
-
     if (t.isVariableDeclaration(node)) {
         return node.declarations.map((declaration) => {
             return t.expressionStatement(
@@ -160,6 +158,24 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
         }
     }
 
+    const replaceIdentifiersWithStateMemberAccess = (node: t.Node): t.Node => {
+        if (t.isIdentifier(node)) {
+            return t.memberExpression(
+                t.memberExpression(
+                    t.thisExpression(),
+                    t.identifier("state"),
+                ),
+                t.identifier(node.name),
+            );
+        }
+        if (t.isExpressionStatement(node)) {
+            return t.expressionStatement(
+                replaceIdentifiersWithStateMemberAccess(node.expression) as t.Expression
+            )
+        }
+        return node;
+    }
+
 
     const constructorStateAssignments = {
         type: "ObjectExpression",
@@ -239,7 +255,7 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                             "type": "Identifier",
                             "name": "value"
                         },
-                        "value": step.yieldedValue || null
+                        "value": step.yieldedValue ? replaceIdentifiersWithStateMemberAccess(step.yieldedValue) : null
                     },
                     {
                         "type": "ObjectProperty",
@@ -462,12 +478,9 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                                     {
                                         "type": "Identifier",
                                         "name": "value",
-                                        "optional": true,
                                         "typeAnnotation": {
                                             "type": "TSTypeAnnotation",
-                                            "typeAnnotation": {
-                                                "type": "TSNumberKeyword",
-                                            }
+                                            "typeAnnotation": generatorComponents.nextStepParamType,
                                         }
                                     }
                                 ],
@@ -557,8 +570,6 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
             plugins: ["typescript"],
         }
     );
-
-    console.log(JSON.stringify(output, null, 4));
 
     return output.code;
 }
