@@ -1,5 +1,5 @@
 build.parse.file:
-	./node_modules/typescript/bin/tsc --lib es6,dom --outdir build src/parse/parse-file.ts
+	./node_modules/typescript/bin/tsc --lib es6,dom --outdir build src/util/parse-file.ts
 
 run.parse.file:
 	node build/parse-file.js $(file)
@@ -9,3 +9,6 @@ build.serializer:
 
 run.serializer:
 	node build/serializer.js $(file)
+
+test:
+	./node_modules/.bin/jest

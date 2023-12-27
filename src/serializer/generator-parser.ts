@@ -261,8 +261,6 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
         steps.push(Object.assign({}, currentStep, { done: true }) as StateMachineStep);
     }
 
-    console.log(yieldType, returnType)
-
     return {
         name: nameOfGenerator,
         parameters,

@@ -55,7 +55,6 @@ const getParameterType = (parameter: t.Identifier | t.Pattern | t.RestElement): 
         }
     }
     if (t.isRestElement(parameter)) {
-        console.log('Rest element: ', parameter);
         return parameter.typeAnnotation || t.tsTypeAnnotation(t.tsArrayType(t.tsAnyKeyword()));
     }
     throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
