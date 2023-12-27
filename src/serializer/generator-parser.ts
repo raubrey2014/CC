@@ -1,5 +1,5 @@
 import * as t from "@babel/types";
-import { GeneratorComponents, PreYieldStep } from "./types";
+import { GeneratorComponents, StateMachineStep } from "./types";
 
 const doesNodeContainYield = (node: t.Node): boolean => {
     if (t.isYieldExpression(node)) {
@@ -133,40 +133,135 @@ const yieldArgumentInNode = (node: t.Node): t.Expression | undefined => {
     return undefined;
 }
 
+const doesNodeContainReturn = (node: t.Node): boolean => {
+    if (t.isReturnStatement(node)) {
+        return true;
+    }
+    if (t.isExpressionStatement(node)) {
+        return doesNodeContainReturn(node.expression);
+    }
+    if (t.isBlockStatement(node)) {
+        return node.body.some((statement) => doesNodeContainReturn(statement));
+    }
+    if (t.isIfStatement(node)) {
+        return doesNodeContainReturn(node.consequent) || (!!node.alternate && doesNodeContainReturn(node.alternate));
+    }
+    if (t.isSwitchStatement(node)) {
+        return node.cases.some((caseStatement) => caseStatement.consequent.some((statement) => doesNodeContainReturn(statement)));
+    }
+    if (t.isTryStatement(node)) {
+        return doesNodeContainReturn(node.block) || (!!node.handler && doesNodeContainReturn(node.handler.body)) || (!!node.finalizer && doesNodeContainReturn(node.finalizer));
+    }
+    if (t.isWhileStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isDoWhileStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isForStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isForInStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isForOfStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isLabeledStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isWithStatement(node)) {
+        return doesNodeContainReturn(node.body);
+    }
+    if (t.isThrowStatement(node)) {
+        return doesNodeContainReturn(node.argument);
+    }
+    if (t.isVariableDeclaration(node)) {
+        return node.declarations.some((declaration) => doesNodeContainReturn(declaration));
+    }
+    if (t.isVariableDeclarator(node)) {
+        return !!node.init && doesNodeContainReturn(node.init);
+    }
+    if (t.isConditionalExpression(node)) {
+        return doesNodeContainReturn(node.consequent) || doesNodeContainReturn(node.alternate);
+    }
+    if (t.isLogicalExpression(node)) {
+        return doesNodeContainReturn(node.left) || doesNodeContainReturn(node.right);
+    }
+    if (t.isBinaryExpression(node)) {
+        return doesNodeContainReturn(node.left) || doesNodeContainReturn(node.right);
+    }
+    return false;
+}
+
+const returnArgumentInNode = (node: t.Node): t.Expression | undefined => {
+    if (t.isReturnStatement(node)) {
+        return node.argument || undefined;
+    }
+    if (t.isExpressionStatement(node)) {
+        return returnArgumentInNode(node.expression);
+    }
+    if (t.isBlockStatement(node)) {
+        const [possible] = node.body.map((statement) => returnArgumentInNode(statement));
+        return possible;
+    }
+    if (t.isIfStatement(node)) {
+        return returnArgumentInNode(node.consequent) || (node.alternate && returnArgumentInNode(node.alternate)) || undefined;
+    }
+    if (t.isAssignmentExpression(node)) {
+        return returnArgumentInNode(node.left) || returnArgumentInNode(node.right);
+    }
+    return undefined;
+}
+
 export function parseGenerator(generator: t.FunctionDeclaration): GeneratorComponents {
     const nameOfGenerator = generator.id!.name;
 
     // Limitation #1: Only support parameters of Identifier type
-    const parameters = generator.params.map((param) => {
-        if (t.isIdentifier(param)) {
-            return param;
-        } else {
-            throw new Error("Unsupported parameter type: " + param.type);
-        }
-    });
+    const parameters = generator.params;
 
     // Limitation #2: Assume perfectly typed Generator<YieldedType, ReturnType, NextStepParamType>
     const [yieldType, returnType, nextStepParamType] = ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters!.params;
 
     const localVariables = generator.body.body.filter((node) => t.isVariableDeclaration(node)).map((node) => node as t.VariableDeclaration);
 
-    const steps: PreYieldStep[] = []
-    let currentPreYieldStatements: t.Statement[] = [];
-    for (const statement of generator.body.body) {
+    const steps: StateMachineStep[] = [];
+    // Go through each statement until a yield expression is found
+    // Collect all expressions and yield argument into first step
+    // Put yield expression but replaced with `value` identifier into second step
+    let currentStep: Partial<StateMachineStep> = {
+        statements: []
+    };
+    for (let i = 0; i < generator.body.body.length; i++) {
+        const lastStatement = i === generator.body.body.length - 1;
+        const statement = generator.body.body[i];
         // Check if expression contains a yield expression
         if (doesNodeContainYield(statement)) {
             const yieldedValue = yieldArgumentInNode(statement);
             // If so, add the current pre-yield statements, the yield expression, and the yielded value to the steps
-            steps.push({
-                preYieldStatements: currentPreYieldStatements,
-                yieldStatement: statement,
-                yieldedValue: yieldedValue
-            });
-            currentPreYieldStatements = [];
+            currentStep.returnExpression = yieldedValue;
+            steps.push(Object.assign({}, currentStep, { done: lastStatement }) as StateMachineStep);
+            currentStep = {
+                startingYield: statement,
+                statements: []
+            };
+        } else if (doesNodeContainReturn(statement)) {
+            const returnedValue = returnArgumentInNode(statement);
+            currentStep.returnExpression = returnedValue;
+            steps.push(Object.assign({}, currentStep, { done: true }) as StateMachineStep);
+            currentStep = {
+                statements: []
+            };
         } else {
-            currentPreYieldStatements.push(statement);
+            currentStep.statements?.push(statement);
         }
     }
+
+    if (currentStep.startingYield || currentStep.statements?.length) {
+        steps.push(Object.assign({}, currentStep, { done: true }) as StateMachineStep);
+    }
+
+    console.log(yieldType, returnType)
 
     return {
         name: nameOfGenerator,
@@ -175,7 +270,7 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
         returnType,
         nextStepParamType,
         localVariables,
-        steps,
+        steps
     };
 }
 

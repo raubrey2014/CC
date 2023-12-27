@@ -1,73 +1,62 @@
 import generate from "@babel/generator";
 import { GeneratorComponents } from "./types";
 import * as t from "@babel/types";
+import { replaceIdentifiersWithStateMemberAccess, replaceLocalVariableWithStateAssignment, replaceYieldInStatementWithValue } from "./replace/replacer";
 
 const upperFirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-// TODO: much more work needed
-const replaceYieldInStatementWithValue = (node: t.Node): t.Node => {
-    if (t.isYieldExpression(node)) {
-        return t.identifier("value");
+/**
+ * Converts a local variable declaration to a state assignment.
+ * 
+ * i.e.
+ * 
+ * let a: number = 0;
+ * 
+ * to
+ * 
+ * state.a = 0;
+ */
+const localVariableToStateAssignment = (declarator: t.VariableDeclarator) => {
+    if (declarator.init?.type === "NumericLiteral") {
+        return t.numericLiteral((declarator.init as t.NumericLiteral).value);
+    } else if (declarator.init?.type === "StringLiteral") {
+        return t.stringLiteral((declarator.init as t.StringLiteral).value);
+    } else if (declarator.init?.type === "Identifier") {
+        return t.identifier((declarator.init as t.Identifier).name);
+    } else {
+        throw new Error("Unsupported local variable declaration to state assignment conversion. " + JSON.stringify(declarator, null, 4));
     }
-    if (t.isExpressionStatement(node)) {
-        return t.expressionStatement(
-            replaceYieldInStatementWithValue(node.expression) as t.Expression
-        )
-    }
-    if (t.isAssignmentExpression(node)) {
-        return t.assignmentExpression(
-            node.operator,
-            replaceYieldInStatementWithValue(node.left) as t.OptionalMemberExpression | t.LVal,
-            replaceYieldInStatementWithValue(node.right) as t.Expression,
-        )
-    }
-    return node;
 }
 
-const replaceLocalVariableWithStateAssignment = (node: t.Node): t.Node[] => {
-    if (t.isVariableDeclaration(node)) {
-        return node.declarations.map((declaration) => {
-            return t.expressionStatement(
-                t.assignmentExpression(
-                    "=",
-                    t.memberExpression(
-                        t.memberExpression(
-                            t.thisExpression(),
-                            t.identifier("state"),
-                        ),
-                        t.identifier((declaration.id as t.Identifier).name),
-                    ),
-                    declaration.init as t.Expression,
-                )
-            );
-        });
+const getParameterName = (parameter: t.Identifier | t.Pattern | t.RestElement): string => {
+    if (t.isIdentifier(parameter)) {
+        return parameter.name;
     }
-    if (t.isExpressionStatement(node) && t.isAssignmentExpression(node.expression)) {
-        return [
-            t.expressionStatement(
-                t.assignmentExpression(
-                    node.expression.operator,
-                    t.memberExpression(
-                        t.memberExpression(
-                            t.thisExpression(),
-                            t.identifier("state"),
-                        ),
-                        t.identifier((node.expression.left as t.Identifier).name),
-                    ),
-                    node.expression.right as t.Expression,
-                )
-            )
-        ]
+    if (t.isAssignmentPattern(parameter)) {
+        if (t.isIdentifier(parameter.left)) {
+            return getParameterName(parameter.left);
+        }
     }
-
-    return [node];
+    throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
 }
+
+const getParameterType = (parameter: t.Identifier | t.Pattern | t.RestElement): t.TypeAnnotation | t.TSTypeAnnotation | t.Noop | null | undefined => {
+    if (t.isIdentifier(parameter)) {
+        return parameter.typeAnnotation;
+    }
+    if (t.isAssignmentPattern(parameter)) {
+        if (t.isIdentifier(parameter.left)) {
+            return getParameterType(parameter.left);
+        }
+    }
+    throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
+}
+
 
 /**
  * Generates a Generator class (as a code string) from the parsed components of a generator function.
  */
 export function generateSerializableStateMachine(generatorComponents: GeneratorComponents): string {
-
     const stateMembersTypes = [
         // nextStep
         t.tsPropertySignature(
@@ -81,83 +70,18 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                 type: "Identifier",
                 name: (declaration.id as t.Identifier).name,
             },
-            typeAnnotation: {
-                type: "TypeAnnotation",
-                typeAnnotation: {
-                    type: ((declaration.id as t.Identifier).typeAnnotation as t.TSTypeAnnotation).typeAnnotation.type,
-                },
-            },
+            typeAnnotation: (declaration.id as t.Identifier).typeAnnotation
         })),
-        // parameters
         ...generatorComponents.parameters.map((parameter) => ({
             type: "TSPropertySignature",
-            key: {
-                type: "Identifier",
-                name: parameter.name,
-            },
-            typeAnnotation: {
-                type: "TypeAnnotation",
-                typeAnnotation: {
-                    type: (parameter.typeAnnotation as t.TSTypeAnnotation).typeAnnotation.type,
-                },
-            },
+            key: t.identifier(getParameterName(parameter)),
+            typeAnnotation: getParameterType(parameter),
         })),
     ]
 
     const constructorParameters = [
-        ...generatorComponents.parameters.map((parameter) => ({
-            type: "Identifier",
-            name: parameter.name,
-            typeAnnotation: {
-                type: "TypeAnnotation",
-                typeAnnotation: {
-                    type: (parameter.typeAnnotation as t.TSTypeAnnotation).typeAnnotation.type,
-                },
-            },
-        })),
+        ...generatorComponents.parameters
     ];
-
-    /**
-     * Converts a local variable declaration to a state assignment.
-     * 
-     * i.e.
-     * 
-     * let a: number = 0;
-     * 
-     * to
-     * 
-     * state.a = 0;
-     */
-    const localVariableToStateAssignment = (declarator: t.VariableDeclarator) => {
-        if (declarator.init?.type === "NumericLiteral") {
-            return t.numericLiteral((declarator.init as t.NumericLiteral).value);
-        } else if (declarator.init?.type === "StringLiteral") {
-            return t.stringLiteral((declarator.init as t.StringLiteral).value);
-        } else if (declarator.init?.type === "Identifier") {
-            return t.identifier((declarator.init as t.Identifier).name);
-        } else {
-            throw new Error("Unsupported local variable declaration to state assignment conversion. " + JSON.stringify(declarator, null, 4));
-        }
-    }
-
-    const replaceIdentifiersWithStateMemberAccess = (node: t.Node): t.Node => {
-        if (t.isIdentifier(node)) {
-            return t.memberExpression(
-                t.memberExpression(
-                    t.thisExpression(),
-                    t.identifier("state"),
-                ),
-                t.identifier(node.name),
-            );
-        }
-        if (t.isExpressionStatement(node)) {
-            return t.expressionStatement(
-                replaceIdentifiersWithStateMemberAccess(node.expression) as t.Expression
-            )
-        }
-        return node;
-    }
-
 
     const constructorStateAssignments = {
         type: "ObjectExpression",
@@ -175,22 +99,13 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
             },
             ...generatorComponents.parameters.map((parameter) => ({
                 type: "ObjectProperty",
-                key: {
-                    type: "Identifier",
-                    name: parameter.name,
-                },
-                value: {
-                    type: "Identifier",
-                    name: parameter.name,
-                },
+                key: t.identifier(getParameterName(parameter)),
+                value: t.identifier(getParameterName(parameter)),
                 shorthand: false,
             })),
             ...generatorComponents.localVariables.flatMap(localVar => localVar.declarations).map((declarator) => ({
                 type: "ObjectProperty",
-                key: {
-                    type: "Identifier",
-                    name: (declarator.id as t.Identifier).name,
-                },
+                key: t.identifier((declarator.id as t.Identifier).name),
                 value: localVariableToStateAssignment(declarator)
             })),
         ]
@@ -223,41 +138,33 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                 right: {
                     type: "NumericLiteral",
                     value: index + 1,
-                },
-            },
+                }
+            }
         };
         const returnStatement = {
             type: "ReturnStatement",
-            "argument": {
-                "type": "ObjectExpression",
-                "properties": [
+            argument: {
+                type: "ObjectExpression",
+                properties: [
                     {
                         "type": "ObjectProperty",
-                        "key": {
-                            "type": "Identifier",
-                            "name": "value"
-                        },
-                        "value": step.yieldedValue ? replaceIdentifiersWithStateMemberAccess(step.yieldedValue) : null
+                        "key": t.identifier("value"),
+                        "value": step.returnExpression ? replaceIdentifiersWithStateMemberAccess(step.returnExpression) : null
                     },
                     {
                         "type": "ObjectProperty",
-                        "key": {
-                            "type": "Identifier",
-                            "name": "done"
-                        },
-                        "value": {
-                            "type": "BooleanLiteral",
-                            "value": isLastStep
-                        }
+                        "key": t.identifier("done"),
+                        "value": t.booleanLiteral(isLastStep),
                     }
                 ]
             }
         };
-        const replacedYieldedExpression =
-            replaceLocalVariableWithStateAssignment(replaceYieldInStatementWithValue(step.yieldStatement));
+
+        const replacedYieldedExpression = step.startingYield ?
+            replaceLocalVariableWithStateAssignment(replaceYieldInStatementWithValue(step.startingYield)) : [];
         const consequent = isLastStep ?
-            [...step.preYieldStatements.flatMap(replaceLocalVariableWithStateAssignment), ...replacedYieldedExpression, returnStatement] :
-            [...step.preYieldStatements.flatMap(replaceLocalVariableWithStateAssignment), ...replacedYieldedExpression, incrementNextStepStatement, returnStatement];
+            [...replacedYieldedExpression, ...step.statements.flatMap(replaceLocalVariableWithStateAssignment), returnStatement] :
+            [...replacedYieldedExpression, ...step.statements.flatMap(replaceLocalVariableWithStateAssignment), incrementNextStepStatement, returnStatement];
         return {
             type: "SwitchCase",
             test: {
@@ -335,108 +242,80 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                                 }
                             },
                             {
-                                "type": "ClassMethod",
-                                "static": false,
-                                "key": {
-                                    "type": "Identifier",
-                                    "name": "saveState"
-                                },
-                                "params": [],
-                                "returnType": {
-                                    "type": "TSTypeAnnotation",
-                                    "typeAnnotation": {
-                                        "type": "TSTypeLiteral",
-                                        "members": [
+                                type: "ClassMethod",
+                                key: t.identifier("saveState"),
+                                params: [],
+                                returnType: {
+                                    type: "TSTypeAnnotation",
+                                    typeAnnotation: {
+                                        type: "TSTypeLiteral",
+                                        members: [
                                             ...stateMembersTypes,
                                         ]
                                     }
                                 },
-                                "body": {
-                                    "type": "BlockStatement",
-
-                                    "body": [
+                                body: {
+                                    type: "BlockStatement",
+                                    body: [
                                         {
-                                            "type": "ReturnStatement",
-                                            "argument": {
-                                                "type": "ObjectExpression",
-                                                "properties": [
+                                            type: "ReturnStatement",
+                                            argument: {
+                                                type: "ObjectExpression",
+                                                properties: [
                                                     {
-                                                        "type": "SpreadElement",
-                                                        "argument": {
-                                                            "type": "MemberExpression",
-                                                            "object": {
-                                                                "type": "ThisExpression",
-                                                            },
-                                                            "computed": false,
-                                                            "property": {
-                                                                "type": "Identifier",
-                                                                "name": "state"
-                                                            }
+                                                        type: "SpreadElement",
+                                                        argument: {
+                                                            type: "MemberExpression",
+                                                            object: t.thisExpression(),
+                                                            property: t.identifier("state"),
                                                         }
                                                     }
                                                 ]
                                             }
                                         }
-                                    ],
-                                    "directives": []
+                                    ]
                                 }
                             },
                             {
-                                "type": "ClassMethod",
-                                "key": {
-                                    "type": "Identifier",
-                                    "name": "loadState"
-                                },
-                                "params": [
+                                type: "ClassMethod",
+                                key: t.identifier("loadState"),
+                                params: [
                                     {
-                                        "type": "Identifier",
-                                        "name": "state",
-                                        "typeAnnotation": {
-                                            "type": "TSTypeAnnotation",
-                                            "typeAnnotation": {
-                                                "type": "TSObjectKeyword",
+                                        type: "Identifier",
+                                        name: "state",
+                                        typeAnnotation: {
+                                            type: "TSTypeAnnotation",
+                                            typeAnnotation: {
+                                                type: "TSObjectKeyword",
                                             }
                                         }
                                     }
                                 ],
-                                "returnType": {
-                                    "type": "TSTypeAnnotation",
-                                    "typeAnnotation": {
-                                        "type": "TSVoidKeyword",
-                                    }
-                                },
-                                "body": {
-                                    "type": "BlockStatement",
-                                    "body": [
+                                returnType: t.tsTypeAnnotation(t.tsVoidKeyword()),
+                                body: {
+                                    type: "BlockStatement",
+                                    body: [
                                         {
-                                            "type": "ExpressionStatement",
-                                            "expression": {
-                                                "type": "AssignmentExpression",
-                                                "operator": "=",
-                                                "left": {
-                                                    "type": "MemberExpression",
-                                                    "object": {
-                                                        "type": "ThisExpression",
-                                                    },
-                                                    "property": {
-                                                        "type": "Identifier",
-                                                        "name": "state"
-                                                    }
+                                            type: "ExpressionStatement",
+                                            expression: {
+                                                type: "AssignmentExpression",
+                                                operator: "=",
+                                                left: {
+                                                    type: "MemberExpression",
+                                                    object: t.thisExpression(),
+                                                    property: t.identifier("state"),
                                                 },
-                                                "right": {
-                                                    "type": "ObjectExpression",
-                                                    "properties": [
+                                                right: {
+                                                    type: "ObjectExpression",
+                                                    properties: [
                                                         {
-                                                            "type": "SpreadElement",
-                                                            "argument": {
-                                                                "type": "TSAsExpression",
-                                                                "expression": {
-                                                                    "type": "Identifier",
-                                                                    "name": "state"
-                                                                },
-                                                                "typeAnnotation": {
-                                                                    "type": "TSTypeLiteral",
-                                                                    "members": [
+                                                            type: "SpreadElement",
+                                                            argument: {
+                                                                type: "TSAsExpression",
+                                                                expression: t.identifier("state"),
+                                                                typeAnnotation: {
+                                                                    type: "TSTypeLiteral",
+                                                                    members: [
                                                                         ...stateMembersTypes,
                                                                     ]
                                                                 }
@@ -446,68 +325,49 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                                                 }
                                             }
                                         }
-                                    ],
-                                    "directives": []
+                                    ]
                                 }
                             },
                             {
-                                "type": "ClassMethod",
-                                "key": {
-                                    "type": "Identifier",
-                                    "name": "nextStep"
-                                },
-                                "params": [
+                                type: "ClassMethod",
+                                key: t.identifier("nextStep"),
+                                params: [
                                     {
-                                        "type": "Identifier",
-                                        "name": "value",
-                                        "typeAnnotation": {
-                                            "type": "TSTypeAnnotation",
-                                            "typeAnnotation": generatorComponents.nextStepParamType,
+                                        type: "Identifier",
+                                        name: "value",
+                                        typeAnnotation: {
+                                            type: "TSTypeAnnotation",
+                                            typeAnnotation: generatorComponents.nextStepParamType,
                                         }
                                     }
                                 ],
-                                "returnType": {
-                                    "type": "TSTypeAnnotation",
-                                    "typeAnnotation": {
-                                        "type": "TSTypeReference",
-                                        "typeName": {
-                                            "type": "Identifier",
-                                            "name": "IteratorResult"
-                                        },
-                                        "typeParameters": {
-                                            "type": "TSTypeParameterInstantiation",
-                                            "params": [
-                                                {
-                                                    "type": generatorComponents.yieldType.type,
-                                                },
-                                                {
-                                                    "type": generatorComponents.returnType.type,
-                                                }
+                                returnType: {
+                                    type: "TSTypeAnnotation",
+                                    typeAnnotation: {
+                                        type: "TSTypeReference",
+                                        typeName: t.identifier("IteratorResult"),
+                                        typeParameters: {
+                                            type: "TSTypeParameterInstantiation",
+                                            params: [
+                                                generatorComponents.yieldType,
+                                                generatorComponents.returnType
                                             ]
                                         }
                                     }
                                 },
-                                "body": {
-                                    "type": "BlockStatement",
-                                    "body": [
+                                body: {
+                                    type: "BlockStatement",
+                                    body: [
                                         {
                                             type: "SwitchStatement",
                                             discriminant: {
                                                 type: "MemberExpression",
                                                 object: {
                                                     type: "MemberExpression",
-                                                    object: {
-                                                        type: "ThisExpression",
-                                                    },
-                                                    property: {
-                                                        type: "Identifier",
-                                                        name: "state"
-                                                    }
+                                                    object: t.thisExpression(),
+                                                    property: t.identifier("state"),
                                                 },
-                                                property: {
-                                                    type: "Identifier",
-                                                    name: "nextStep"
-                                                }
+                                                property: t.identifier("nextStep"),
                                             },
                                             cases: [
                                                 ...stateMachineCases,
@@ -531,26 +391,22 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                                                                 ]
                                                             }
                                                         }
-                                                    ],
+                                                    ]
                                                 }
-                                            ],
+                                            ]
                                         }
-                                    ],
-                                    "directives": []
+                                    ]
                                 }
                             }
-                        ],
-                    },
-                },
-            ],
-        },
+                        ]
+                    }
+                }
+            ]
+        }
     };
 
     const output = generate(
-        ast,
-        {
-            plugins: ["typescript"],
-        }
+        ast as t.File
     );
 
     return output.code;

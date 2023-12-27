@@ -3,7 +3,7 @@
 What do we need to do? These could be considered the "micro passes" of our compiler. The micro passes will prioritize clear understanding over performance.
 
 Micro passes:
-0. Parse the input program (?) or generator function
+0. Parse the input program
 1. Identify the parameters to our generator function
 2. Break down the return type of the Generator function
     1. Remember: `Generator<YieldedType, ReturnedType, NextParamType>`
@@ -13,11 +13,15 @@ Micro passes:
     1. Create a constructor that takes the parameters as arguments
     2. Construct a state variable containing a `nextStep` parameter, local variables, and parameters (initialized by the constructor parameters)
     3. Construct the Generator next method
-        1. Single optional parameter of `value` 
+        1. Single parameter of `value` 
         2. Return type of IteratorResult
         type IteratorResult<T, TReturn = any> =
             | IteratorYieldResult<T>
             | IteratorReturnResult<TReturn>;
+        3. Yield statements form the case statements of a switch statement
+        4. The return value of the yield statement is the return value of the case statement
+        5. Local variables are updated to reference the state variable
+        6. `value` parameter replaces yield expressions
 
 
 ### Parse the input program, build a useful intermediate representation
@@ -196,4 +200,5 @@ I think we can also use Babel for this.
 
 `@babel/generator` can be used to generate code from an AST. We'll use this to generate the Generator class.
 
-Sure enough, check out `babel-generate.ts`'s example. 
+Sure enough, check out `babel-generate.ts`'s example.
+
