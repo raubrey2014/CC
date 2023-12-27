@@ -1,33 +1,29 @@
-import { parseAndGenerateStateMachineComponents } from "./base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../base.e2e";
 
 const generator = `
-function* sum(a: number, b: number): Generator<number, number, number> {
-    let sum: number = 0;
-    sum += yield a;
-    sum += yield b;
-    return sum;
+function* unionTypesTest(a: number | string, b: number): Generator<number, number, number> {
+    yield 42;
+    yield 42;
+    return 42;
 }
 `;
 
-const expectedStateMachine = `class SumGenerator {
+const expectedStateMachine = `class UnionTypesTestGenerator {
   private state: {
     nextStep: number;
-    sum: number;
-    a: number;
+    a: number | string;
     b: number;
   };
-  constructor(a: number, b: number) {
+  constructor(a: number | string, b: number) {
     this.state = {
       nextStep: 0,
       a: a,
-      b: b,
-      sum: 0
+      b: b
     };
   }
   saveState(): {
     nextStep: number;
-    sum: number;
-    a: number;
+    a: number | string;
     b: number;
   } {
     return {
@@ -38,8 +34,7 @@ const expectedStateMachine = `class SumGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        sum: number;
-        a: number;
+        a: number | string;
         b: number;
       })
     };
@@ -47,23 +42,22 @@ const expectedStateMachine = `class SumGenerator {
   nextStep(value: number): IteratorResult<number, number> {
     switch (this.state.nextStep) {
       case 0:
-        this.state.sum = 0;
         this.state.nextStep = 1;
         return {
-          value: this.state.a,
+          value: 42,
           done: false
         };
       case 1:
-        this.state.sum += value;
+        value;
         this.state.nextStep = 2;
         return {
-          value: this.state.b,
+          value: 42,
           done: false
         };
       case 2:
-        this.state.sum += value;
+        value;
         return {
-          value: this.state.sum,
+          value: 42,
           done: true
         };
       default:
@@ -72,8 +66,8 @@ const expectedStateMachine = `class SumGenerator {
   }
 }`;
 
-describe('e2e serializer', () => {
-  it('should serialize sum', () => {
+describe('e2e serializer of union parameter types', () => {
+  it('should serialize union param types', () => {
     const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
     expect(stateMachine).toBe(expectedStateMachine);
   });

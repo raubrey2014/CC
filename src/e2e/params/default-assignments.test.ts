@@ -1,32 +1,28 @@
-import { parseAndGenerateStateMachineComponents } from "./base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../base.e2e";
 
 const generator = `
-function* sum(a: number, b: number): Generator<number, number, number> {
-    let sum: number = 0;
-    sum += yield a;
-    sum += yield b;
-    return sum;
+function* defaultAssignmentTest(a: number, b: number = 42): Generator<number, number, number> {
+    yield a;
+    yield b;
+    return 42;
 }
 `;
 
-const expectedStateMachine = `class SumGenerator {
+const expectedStateMachine = `class DefaultAssignmentTestGenerator {
   private state: {
     nextStep: number;
-    sum: number;
     a: number;
     b: number;
   };
-  constructor(a: number, b: number) {
+  constructor(a: number, b: number = 42) {
     this.state = {
       nextStep: 0,
       a: a,
-      b: b,
-      sum: 0
+      b: b
     };
   }
   saveState(): {
     nextStep: number;
-    sum: number;
     a: number;
     b: number;
   } {
@@ -38,7 +34,6 @@ const expectedStateMachine = `class SumGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        sum: number;
         a: number;
         b: number;
       })
@@ -47,23 +42,22 @@ const expectedStateMachine = `class SumGenerator {
   nextStep(value: number): IteratorResult<number, number> {
     switch (this.state.nextStep) {
       case 0:
-        this.state.sum = 0;
         this.state.nextStep = 1;
         return {
           value: this.state.a,
           done: false
         };
       case 1:
-        this.state.sum += value;
+        value;
         this.state.nextStep = 2;
         return {
           value: this.state.b,
           done: false
         };
       case 2:
-        this.state.sum += value;
+        value;
         return {
-          value: this.state.sum,
+          value: 42,
           done: true
         };
       default:
@@ -72,9 +66,9 @@ const expectedStateMachine = `class SumGenerator {
   }
 }`;
 
-describe('e2e serializer', () => {
-  it('should serialize sum', () => {
-    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-    expect(stateMachine).toBe(expectedStateMachine);
-  });
+describe('e2e serializer of complex parameter types', () => {
+    it('should serialize union param types', () => {
+        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+        expect(stateMachine).toBe(expectedStateMachine);
+    });
 });

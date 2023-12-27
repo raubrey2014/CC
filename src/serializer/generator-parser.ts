@@ -217,11 +217,12 @@ const returnArgumentInNode = (node: t.Node): t.Expression | undefined => {
 export function parseGenerator(generator: t.FunctionDeclaration): GeneratorComponents {
     const nameOfGenerator = generator.id!.name;
 
-    // Limitation #1: Only support parameters of Identifier type
     const parameters = generator.params;
 
     // Limitation #2: Assume perfectly typed Generator<YieldedType, ReturnType, NextStepParamType>
-    const [yieldType, returnType, nextStepParamType] = ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters!.params;
+    const [yieldType, returnType, nextStepParamType] = (!!generator.returnType && !!((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params) ?
+        ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params! :
+        [t.tsAnyKeyword(), t.tsAnyKeyword(), t.tsAnyKeyword()];
 
     const localVariables = generator.body.body.filter((node) => t.isVariableDeclaration(node)).map((node) => node as t.VariableDeclaration);
 

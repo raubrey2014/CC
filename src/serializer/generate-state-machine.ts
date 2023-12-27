@@ -37,6 +37,11 @@ const getParameterName = (parameter: t.Identifier | t.Pattern | t.RestElement): 
             return getParameterName(parameter.left);
         }
     }
+    if (t.isRestElement(parameter)) {
+        if (t.isIdentifier(parameter.argument)) {
+            return getParameterName(parameter.argument);
+        }
+    }
     throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
 }
 
@@ -49,7 +54,27 @@ const getParameterType = (parameter: t.Identifier | t.Pattern | t.RestElement): 
             return getParameterType(parameter.left);
         }
     }
+    if (t.isRestElement(parameter)) {
+        console.log('Rest element: ', parameter);
+        return parameter.typeAnnotation;
+    }
     throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
+}
+
+const isParameterOptional = (parameter: t.Identifier | t.Pattern | t.RestElement): boolean => {
+    if (t.isIdentifier(parameter)) {
+        return parameter.optional || false;
+    }
+    if (t.isAssignmentPattern(parameter)) {
+        if (t.isIdentifier(parameter.left)) {
+            return isParameterOptional(parameter.left);
+        }
+    }
+    if (t.isRestElement(parameter)) {
+        // Rest parameters cannot be optional
+        return false;
+    }
+    throw new Error("Unsupported parameter type, cannot parse if is optional: " + JSON.stringify(parameter, null, 4));
 }
 
 
@@ -70,18 +95,18 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                 type: "Identifier",
                 name: (declaration.id as t.Identifier).name,
             },
-            typeAnnotation: (declaration.id as t.Identifier).typeAnnotation
+            typeAnnotation: (declaration.id as t.Identifier).typeAnnotation,
+            optional: (declaration.id as t.Identifier).optional || false
         })),
         ...generatorComponents.parameters.map((parameter) => ({
             type: "TSPropertySignature",
             key: t.identifier(getParameterName(parameter)),
             typeAnnotation: getParameterType(parameter),
+            optional: isParameterOptional(parameter)
         })),
     ]
 
-    const constructorParameters = [
-        ...generatorComponents.parameters
-    ];
+    const constructorParameters = generatorComponents.parameters;
 
     const constructorStateAssignments = {
         type: "ObjectExpression",
