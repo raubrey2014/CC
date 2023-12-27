@@ -219,7 +219,6 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
 
     const parameters = generator.params;
 
-    // Limitation #2: Assume perfectly typed Generator<YieldedType, ReturnType, NextStepParamType>
     const [yieldType, returnType, nextStepParamType] = (!!generator.returnType && !!((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params) ?
         ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params! :
         [t.tsAnyKeyword(), t.tsAnyKeyword(), t.tsAnyKeyword()];

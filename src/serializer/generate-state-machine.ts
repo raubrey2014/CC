@@ -47,7 +47,7 @@ const getParameterName = (parameter: t.Identifier | t.Pattern | t.RestElement): 
 
 const getParameterType = (parameter: t.Identifier | t.Pattern | t.RestElement): t.TypeAnnotation | t.TSTypeAnnotation | t.Noop | null | undefined => {
     if (t.isIdentifier(parameter)) {
-        return parameter.typeAnnotation;
+        return parameter.typeAnnotation || t.tsTypeAnnotation(t.tsAnyKeyword());
     }
     if (t.isAssignmentPattern(parameter)) {
         if (t.isIdentifier(parameter.left)) {

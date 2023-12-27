@@ -1,20 +1,20 @@
 import { parseAndGenerateStateMachineComponents } from "../base.e2e";
 
 const generator = `
-function* incompleteTypesTest(a: number, b: number) {
+function* untypedTest(a, b): Generator<number, number, number> {
     yield 42;
     yield "hello world";
     return "my work here is done";
 }
 `;
 
-const expectedStateMachine = `class IncompleteTypesTestGenerator {
+const expectedStateMachine = `class UntypedTestGenerator {
   private state: {
     nextStep: number;
-    a: number;
-    b: number;
+    a: any;
+    b: any;
   };
-  constructor(a: number, b: number) {
+  constructor(a, b) {
     this.state = {
       nextStep: 0,
       a: a,
@@ -23,8 +23,8 @@ const expectedStateMachine = `class IncompleteTypesTestGenerator {
   }
   saveState(): {
     nextStep: number;
-    a: number;
-    b: number;
+    a: any;
+    b: any;
   } {
     return {
       ...this.state
@@ -34,12 +34,12 @@ const expectedStateMachine = `class IncompleteTypesTestGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        a: number;
-        b: number;
+        a: any;
+        b: any;
       })
     };
   }
-  nextStep(value: any): IteratorResult<any, any> {
+  nextStep(value: number): IteratorResult<number, number> {
     switch (this.state.nextStep) {
       case 0:
         this.state.nextStep = 1;
@@ -66,9 +66,9 @@ const expectedStateMachine = `class IncompleteTypesTestGenerator {
   }
 }`;
 
-describe('e2e serializer of incomplete return types', () => {
-    it('should serialize incomplete return types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+describe('e2e serializer of untyped parameter types', () => {
+  it('should serialize untyped parameter types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });
