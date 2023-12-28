@@ -214,17 +214,15 @@ const returnArgumentInNode = (node: t.Node): t.Expression | undefined => {
     return undefined;
 }
 
-export function parseGenerator(generator: t.FunctionDeclaration): GeneratorComponents {
-    const nameOfGenerator = generator.id!.name;
+const parseGeneratorReturnType = (generator: t.FunctionDeclaration): { yieldType: t.TSType, returnType: t.TSType, nextStepParamType: t.TSType } => {
+    if (!generator.returnType || !t.isTSTypeAnnotation(generator.returnType) || !((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params) {
+        return { yieldType: t.tsAnyKeyword(), returnType: t.tsAnyKeyword(), nextStepParamType: t.tsAnyKeyword() };
+    }
+    const [yieldType, returnType, nextStepParamType] = ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params!;
+    return { yieldType, returnType, nextStepParamType }
+}
 
-    const parameters = generator.params;
-
-    const [yieldType, returnType, nextStepParamType] = (!!generator.returnType && !!((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params) ?
-        ((generator.returnType as t.TSTypeAnnotation).typeAnnotation as t.TSTypeReference).typeParameters?.params! :
-        [t.tsAnyKeyword(), t.tsAnyKeyword(), t.tsAnyKeyword()];
-
-    const localVariables = generator.body.body.filter((node) => t.isVariableDeclaration(node)).map((node) => node as t.VariableDeclaration);
-
+const parseStateMachineSteps = (generator: t.FunctionDeclaration): StateMachineStep[] => {
     const steps: StateMachineStep[] = [];
     // Go through each statement until a yield expression is found
     // Collect all expressions and yield argument into first step
@@ -261,14 +259,24 @@ export function parseGenerator(generator: t.FunctionDeclaration): GeneratorCompo
         steps.push(Object.assign({}, currentStep, { done: true }) as StateMachineStep);
     }
 
+    return steps;
+}
+
+const parseLocalVariableDeclarations = (generator: t.FunctionDeclaration): t.VariableDeclaration[] =>
+    generator.body.body.filter((node) => t.isVariableDeclaration(node)).map((node) => node as t.VariableDeclaration)
+
+export function parseGenerator(generator: t.FunctionDeclaration): GeneratorComponents {
+    const name = generator.id!.name;
+    const parameters = generator.params;
+    const { yieldType, returnType, nextStepParamType } = parseGeneratorReturnType(generator);
     return {
-        name: nameOfGenerator,
+        name,
         parameters,
         yieldType,
         returnType,
         nextStepParamType,
-        localVariables,
-        steps
+        localVariables: parseLocalVariableDeclarations(generator),
+        steps: parseStateMachineSteps(generator)
     };
 }
 

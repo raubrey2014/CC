@@ -1,3 +1,6 @@
+import generate from "@babel/generator";
+import { parse } from "@babel/parser";
+import traverse from "@babel/traverse";
 import * as t from "@babel/types";
 
 export class Replacer {
@@ -44,7 +47,6 @@ export class Replacer {
     }
 
     public replaceLocalVariableWithState(node: t.Node): t.Node[] {
-
         if (t.isIdentifier(node)) {
             if (this.identifyNamesToBeReplacedWithState.includes(node.name)) {
                 return [t.memberExpression(
@@ -88,7 +90,6 @@ export class Replacer {
                 )
             )]
         }
-
 
         return [node];
     }
