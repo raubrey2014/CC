@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "build.serializer": "./node_modules/typescript/bin/tsc --lib es6,dom --outdir build src/serializer/serializer.ts",
+    "run.serializer": "node build/serializer.js",
+    "test": "./node_modules/.bin/jest"
+  },
   "dependencies": {
     "@babel/generator": "^7.23.6",
     "@babel/parser": "^7.23.6",
