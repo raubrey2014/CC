@@ -273,15 +273,19 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, identi
                 ])
             );
 
-        const replacedYieldedExpression = step.startingYield ?
-            replacer.replaceLocalVariableWithState(replacer.replaceYieldInStatementWithValue(step.startingYield)) : [];
-        const consequent = isLastStep ?
-            [...replacedYieldedExpression, ...step.statements.flatMap(replacer.replaceLocalVariableWithState), returnStatement] :
-            [...replacedYieldedExpression, ...step.statements.flatMap(replacer.replaceLocalVariableWithState), incrementNextStepStatement, returnStatement];
+        let statements: t.Node[] = []
+        if (step.startingYield) {
+            statements = statements.concat(replacer.replaceLocalVariableWithState(replacer.replaceYieldInStatementWithValue(step.startingYield)));
+        }
+        statements = statements.concat(step.statements.flatMap(replacer.replaceLocalVariableWithState));
+        if (!isLastStep) {
+            statements = statements.concat(incrementNextStepStatement);
+        }
+        statements.push(returnStatement);
         return {
             type: "SwitchCase",
             test: t.numericLiteral(index),
-            consequent: consequent,
+            consequent: statements,
         }
     });
 

@@ -78,5 +78,28 @@ To accomplish both the **Parse** and **Generate** steps, we use the [Babel](http
 
 
 ### Improvements
-- [ ] Improve the logical separation between parsing and generation
-- [ ] Get rid of replacer
+- [ ] Improve code
+    - [ ] Improve the logical separation between parsing and generation
+    - [ ] Get rid of replacer logic, use babel's built in traversal and replaceWith
+    - [ ] Consider use of @babel/template for code generation
+    - [ ] Improve babel typing throughout and consolidate to all `t.*` calls rather than raw node construction
+- [ ] Improved generator types
+    - [ ] Support for async generators
+- [ ] Improved parameter parsing
+    - [ ] Support for object destructuring
+    - [ ] Support for array destructuring
+- [ ] Improved state type
+    - [ ] Consider collecting state type object into an interface (i.e. `interface FooGeneratorState { ... }`) and referencing that throughout the generated class
+- [ ] Improved local variable parsing
+    - [ ] Support for object destructuring
+    - [ ] Support for array destructuring
+- [ ] Improved state machine generation
+    - [ ] Support `if/else` with terminal return statements
+- [ ] Improved yield parsing
+    - [ ] Support for `yield*`
+    - [ ] Support for `yield` in `try/catch/finally`
+    - [ ] Support for `yield` in `switch`
+    - [ ] Support for `yield` in `if/else`
+    - [ ] Support for `yield` in `for/while/do`
+    - [ ] Support for `yield` in `return`
+
