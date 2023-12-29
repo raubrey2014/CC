@@ -2,8 +2,7 @@ import generate from "@babel/generator";
 import { GeneratorComponents } from "./types";
 import * as t from "@babel/types";
 import { Replacer } from "./replace/replacer";
-import { ParseResult, parse } from "@babel/parser";
-import traverse from "@babel/traverse";
+import { ParseResult } from "@babel/parser";
 
 const upperFirst = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -190,10 +189,7 @@ const generateLoadStateMethod = (generatorComponents: GeneratorComponents, state
     }
 }
 
-const generateNextStepMethod = (generatorComponents: GeneratorComponents, identifyNamesToBeReplacedWithState: string[]): t.ClassMethod => {
-
-    const replacer = new Replacer(identifyNamesToBeReplacedWithState);
-
+const generateNextStepMethod = (generatorComponents: GeneratorComponents, replacer: Replacer): t.ClassMethod => {
     const stateMachineCases = generatorComponents.steps.map((step, index) => {
         const isLastStep = index === generatorComponents.steps.length - 1;
         const incrementNextStepStatement = t.expressionStatement(
@@ -302,11 +298,7 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
         ...generatorComponents.parametersAsProperties.map((parameter) => t.tsPropertySignature(t.identifier(parameter.name), parameter.typeAnnotation)),
     ] as t.TSPropertySignature[];
 
-    // TODO: completely rethink this :puke:
-    const identifyNamesToBeReplacedWithState = [
-        ...generatorComponents.localVariablesAsProperties.filter(member => "key" in member && "name" in member.key).map(member => member.key["name"]),
-        ...generatorComponents.parametersAsProperties.map(member => member.name),
-    ];
+    const replacer = new Replacer(generatorComponents);
 
     const ast = t.file(
         t.program(
@@ -319,7 +311,7 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
                             generateConstructor(generatorComponents),
                             generateSaveStateMethod(generatorComponents, stateMembersTypes),
                             generateLoadStateMethod(generatorComponents, stateMembersTypes),
-                            generateNextStepMethod(generatorComponents, identifyNamesToBeReplacedWithState),
+                            generateNextStepMethod(generatorComponents, replacer),
                         ]
                     )
                 )
@@ -327,37 +319,7 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
         )
     );
 
-    const output = generate(
-        ast as t.File
-    );
+    replacer.replaceLocalVariableAccessWithStateAccessInPlace(ast as ParseResult<t.File>);
 
-    const fullAst = parse(output.code, {
-        sourceType: "module",
-        plugins: [
-            "typescript",
-        ]
-    });
-
-    traverse(fullAst as ParseResult<t.File>, {
-        enter(path) {
-            if (t.isClassMethod(path.node) && t.isIdentifier(path.node.key) && path.node.key.name === "nextStep") {
-                path.traverse({
-                    enter(innerPath) {
-                        // Replace all usages of local variables with state member access
-                        if (t.isIdentifier(innerPath.node) && identifyNamesToBeReplacedWithState.includes(innerPath.node.name) && !t.isMemberExpression(innerPath.parent)) {
-                            innerPath.replaceWith(t.memberExpression(
-                                t.memberExpression(
-                                    t.thisExpression(),
-                                    t.identifier("state"),
-                                ),
-                                t.identifier(innerPath.node.name),
-                            ))
-                        }
-                    }
-                })
-            }
-        }
-    });
-
-    return generate(fullAst as t.File).code;
+    return generate(ast as t.File).code;
 }
