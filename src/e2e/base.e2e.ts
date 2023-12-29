@@ -1,6 +1,6 @@
 import { ParseResult, parse } from "@babel/parser";
-import { generateSerializableStateMachine } from "../serializer/generator";
-import { parseGenerators } from "../serializer/parser";
+import { generateSerializableStateMachine } from "../serializer/generate/generator";
+import { parseGenerators } from "../serializer/parse/parser";
 import { File } from "@babel/types";
 import { GeneratorComponents } from "../serializer/types";
 

@@ -21,15 +21,6 @@ export interface StateMachineStep {
     done: boolean;
 }
 
-export interface PreYieldStep {
-    // expressions that occur before the yield expression
-    preYieldStatements: t.Statement[];
-    // the expression the yield is a part of
-    yieldStatement: t.Statement;
-    // the possibly yielded value (which will be an expression itself)
-    yieldedValue?: t.Expression;
-}
-
 export interface ParsedParameter {
     name: string;
     typeAnnotation: t.TSTypeAnnotation;

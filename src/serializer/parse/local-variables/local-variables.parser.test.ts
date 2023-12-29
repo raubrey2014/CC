@@ -1,6 +1,6 @@
 import * as t from "@babel/types";
 import { parseLocalVariableAsProperties } from "./local-variables.parser";
-import { getGeneratorFromCode } from "../../util/test-utils";
+import { getGeneratorFromCode } from "../../../util/test-utils";
 
 describe("local variable parser", () => {
     it("should parse single identifier variable declarations", () => {

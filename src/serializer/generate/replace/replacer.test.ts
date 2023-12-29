@@ -1,6 +1,6 @@
 import * as t from '@babel/types';
 import { Replacer } from "./replacer";
-import { GeneratorComponents } from '../types';
+import { GeneratorComponents } from '../../types';
 
 const replacer = new Replacer({ localVariablesAsProperties: [], parametersAsProperties: [] } as unknown as GeneratorComponents);
 

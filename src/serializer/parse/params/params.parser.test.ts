@@ -1,5 +1,5 @@
 import * as t from "@babel/types";
-import { getGeneratorFromCode } from "../../util/test-utils";
+import { getGeneratorFromCode } from "../../../util/test-utils";
 import { parseGeneratorParametersAsProperties } from "./params.parser";
 
 describe("params parser", () => {

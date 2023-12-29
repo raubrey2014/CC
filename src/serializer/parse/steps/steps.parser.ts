@@ -1,5 +1,5 @@
 import * as t from '@babel/types';
-import { StateMachineStep } from '../types';
+import { StateMachineStep } from '../../types';
 
 const doesNodeContainYield = (node: t.Node): boolean => {
     if (t.isYieldExpression(node)) {

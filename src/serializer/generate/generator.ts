@@ -1,5 +1,5 @@
 import generate from "@babel/generator";
-import { GeneratorComponents } from "./types";
+import { GeneratorComponents } from "../types";
 import * as t from "@babel/types";
 import { Replacer } from "./replace/replacer";
 import { ParseResult } from "@babel/parser";

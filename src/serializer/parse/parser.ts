@@ -1,9 +1,9 @@
 import * as t from "@babel/types";
-import { GeneratorComponents } from "./types";
-import { parseLocalVariableDeclarations, parseLocalVariableAsProperties } from "./parse/local-variables.parser";
-import { parseGeneratorParametersAsProperties } from "./parse/params.parser";
-import { parseGeneratorReturnType } from "./parse/return-type.parser";
-import { parseStateMachineSteps } from "./parse/steps.parser";
+import { GeneratorComponents } from "../types";
+import { parseLocalVariableDeclarations, parseLocalVariableAsProperties } from "./local-variables/local-variables.parser";
+import { parseGeneratorParametersAsProperties } from "./params/params.parser";
+import { parseGeneratorReturnType } from "./return-type/return-type.parser";
+import { parseStateMachineSteps } from "./steps/steps.parser";
 
 const isGenerator = (node: t.Node): boolean => {
     return t.isFunctionDeclaration(node) && node.generator;

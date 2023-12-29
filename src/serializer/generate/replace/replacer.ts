@@ -1,8 +1,7 @@
-import generate from "@babel/generator";
-import { ParseResult, parse } from "@babel/parser";
+import { ParseResult } from "@babel/parser";
 import traverse from "@babel/traverse";
 import * as t from "@babel/types";
-import { GeneratorComponents } from "../types";
+import { GeneratorComponents } from "../../types";
 
 export class Replacer {
 

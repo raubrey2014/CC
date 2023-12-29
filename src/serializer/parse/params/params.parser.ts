@@ -1,5 +1,5 @@
 import * as t from "@babel/types";
-import { ParsedParameter } from "../types";
+import { ParsedParameter } from "../../types";
 
 /**
  * Given a generator function, parse its parameters and return a list of
