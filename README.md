@@ -1,4 +1,4 @@
-### Generator to State Machine Compiler
+### Generator to serializable state machine compiler
 
 Given a Typescript generator function like:
 

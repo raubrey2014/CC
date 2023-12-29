@@ -11,8 +11,8 @@ function* optionalTest(a?: number, b?: number): Generator<number, number, number
 const expectedStateMachine = `class OptionalTestGenerator {
   private state: {
     nextStep: number;
-    a?: number;
-    b?: number;
+    a: number | undefined;
+    b: number | undefined;
   };
   constructor(a?: number, b?: number) {
     this.state = {
@@ -23,8 +23,8 @@ const expectedStateMachine = `class OptionalTestGenerator {
   }
   saveState(): {
     nextStep: number;
-    a?: number;
-    b?: number;
+    a: number | undefined;
+    b: number | undefined;
   } {
     return {
       ...this.state
@@ -34,8 +34,8 @@ const expectedStateMachine = `class OptionalTestGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        a?: number;
-        b?: number;
+        a: number | undefined;
+        b: number | undefined;
       })
     };
   }
@@ -67,8 +67,8 @@ const expectedStateMachine = `class OptionalTestGenerator {
 }`;
 
 describe('e2e serializer of optional parameter types', () => {
-    it('should serialize optional param types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize optional param types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });

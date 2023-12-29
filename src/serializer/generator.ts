@@ -48,54 +48,6 @@ const localVariableConstructorInstantiation = (declarator: t.VariableDeclarator)
     }
 }
 
-const getParameterName = (parameter: t.Identifier | t.Pattern | t.RestElement): string => {
-    if (t.isIdentifier(parameter)) {
-        return parameter.name;
-    }
-    if (t.isAssignmentPattern(parameter)) {
-        if (t.isIdentifier(parameter.left)) {
-            return getParameterName(parameter.left);
-        }
-    }
-    if (t.isRestElement(parameter)) {
-        if (t.isIdentifier(parameter.argument)) {
-            return getParameterName(parameter.argument);
-        }
-    }
-    throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
-}
-
-const getParameterType = (parameter: t.Identifier | t.Pattern | t.RestElement): t.TypeAnnotation | t.TSTypeAnnotation | t.Noop | null | undefined => {
-    if (t.isIdentifier(parameter)) {
-        return parameter.typeAnnotation || t.tsTypeAnnotation(t.tsAnyKeyword());
-    }
-    if (t.isAssignmentPattern(parameter)) {
-        if (t.isIdentifier(parameter.left)) {
-            return getParameterType(parameter.left);
-        }
-    }
-    if (t.isRestElement(parameter)) {
-        return parameter.typeAnnotation || t.tsTypeAnnotation(t.tsArrayType(t.tsAnyKeyword()));
-    }
-    throw new Error("Unsupported parameter type: " + JSON.stringify(parameter, null, 4));
-}
-
-const isParameterOptional = (parameter: t.Identifier | t.Pattern | t.RestElement): boolean => {
-    if (t.isIdentifier(parameter)) {
-        return parameter.optional || false;
-    }
-    if (t.isAssignmentPattern(parameter)) {
-        if (t.isIdentifier(parameter.left)) {
-            return isParameterOptional(parameter.left);
-        }
-    }
-    if (t.isRestElement(parameter)) {
-        // Rest parameters cannot be optional
-        return false;
-    }
-    throw new Error("Unsupported parameter type, cannot parse if is optional: " + JSON.stringify(parameter, null, 4));
-}
-
 /**
  * Generates the state property for the state machine. State is comprised of:
  * - parameters of the generator function
@@ -124,10 +76,10 @@ const generateConstructor = (generatorComponents: GeneratorComponents): t.ClassM
             t.identifier("nextStep"),
             t.numericLiteral(0),
         ),
-        ...generatorComponents.parameters.map((parameter) =>
+        ...generatorComponents.parametersAsProperties.map((parameter) =>
             t.objectProperty(
-                t.identifier(getParameterName(parameter)),
-                t.identifier(getParameterName(parameter)),
+                t.identifier(parameter.name),
+                t.identifier(parameter.name),
             )),
         ...generatorComponents.localVariables.flatMap(localVar => localVar.declarations).map((declarator) =>
             t.objectProperty(
@@ -341,33 +293,19 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, identi
  * Generates a Generator class (as a code string) from the parsed components of a generator function.
  */
 export function generateSerializableStateMachine(generatorComponents: GeneratorComponents): string {
-
-    const localVariableStateMembers = generatorComponents.localVariables.flatMap(localVar => localVar.declarations).map((declaration) => ({
-        type: "TSPropertySignature",
-        key: t.identifier((declaration.id as t.Identifier).name),
-        typeAnnotation: (declaration.id as t.Identifier).typeAnnotation,
-        optional: (declaration.id as t.Identifier).optional || false
-    }));
-    const parameterStateMembers = generatorComponents.parameters.map((parameter) => ({
-        type: "TSPropertySignature",
-        key: t.identifier(getParameterName(parameter)),
-        typeAnnotation: getParameterType(parameter),
-        optional: isParameterOptional(parameter)
-    }));
-
     const stateMembersTypes = [
-        // nextStep
         t.tsPropertySignature(
             t.identifier("nextStep"),
             t.tsTypeAnnotation(t.tsNumberKeyword()),
         ),
-        ...localVariableStateMembers,
-        ...parameterStateMembers,
-    ] as t.TSTypeElement[];
+        ...generatorComponents.localVariablesAsProperties,
+        ...generatorComponents.parametersAsProperties.map((parameter) => t.tsPropertySignature(t.identifier(parameter.name), parameter.typeAnnotation)),
+    ] as t.TSPropertySignature[];
 
+    // TODO: completely rethink this :puke:
     const identifyNamesToBeReplacedWithState = [
-        ...localVariableStateMembers.map(member => member.key.name),
-        ...parameterStateMembers.map(member => member.key.name),
+        ...generatorComponents.localVariablesAsProperties.filter(member => "key" in member && "name" in member.key).map(member => member.key["name"]),
+        ...generatorComponents.parametersAsProperties.map(member => member.name),
     ];
 
     const ast = t.file(

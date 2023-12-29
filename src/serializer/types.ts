@@ -29,6 +29,12 @@ export interface PreYieldStep {
     // the possibly yielded value (which will be an expression itself)
     yieldedValue?: t.Expression;
 }
+
+export interface ParsedParameter {
+    name: string;
+    typeAnnotation: t.TSTypeAnnotation;
+}
+
 export interface GeneratorComponents {
     name: string;
     parameters: (t.Identifier | t.RestElement | t.Pattern)[];
@@ -36,6 +42,26 @@ export interface GeneratorComponents {
     returnType: t.TSType;
     nextStepParamType: t.TSType;
     localVariables: t.VariableDeclaration[];
+
+    /**
+     * Parameters parsed into properties of the state object
+     * 
+     * ex: function* foo(a?: number) { ... }
+     * 
+     * as: { a?: number }
+     */
+    parametersAsProperties: ParsedParameter[]
+
+    /**
+     * Parameters parsed into properties of the state object
+     * 
+     * ex: function* foo(a?: number) {
+     *    let b: number = 42;
+     * }
+     * 
+     * as: { b: number }
+     */
+    localVariablesAsProperties: t.TSPropertySignature[]
 
     /**
      * Steps are built from expressions between yield expressions. The yield expression
