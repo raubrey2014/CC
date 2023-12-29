@@ -287,6 +287,13 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, replac
 
 /**
  * Generates a Generator class (as a code string) from the parsed components of a generator function.
+ *
+ * 1. Construct the state type
+ * 2. Construct the constructor
+ * 3. Construct the saveState method
+ * 4. Construct the loadState method
+ * 5. Construct the nextStep method
+ * 6. Replace usage of local variables with state member access (needs improvement)
  */
 export function generateSerializableStateMachine(generatorComponents: GeneratorComponents): string {
     const stateMembersTypes = [
