@@ -86,8 +86,8 @@ To accomplish both the **Parse** and **Generate** steps, we use the [Babel](http
 - [ ] Improved generator types
     - [ ] Support for async generators
 - [ ] Improved parameter parsing
-    - [ ] Support for object destructuring
-    - [ ] Support for array destructuring
+    - [ ] Support for object destructuring (i.e. `function* foo({ a, b }: { a: number, b: number })`
+    - [ ] Support for array destructuring (i.e. `function* foo([a, b]: [number, number])`
 - [ ] Improved state type
     - [ ] Consider collecting state type object into an interface (i.e. `interface FooGeneratorState { ... }`) and referencing that throughout the generated class
 - [ ] Improved local variable parsing
