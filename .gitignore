@@ -1,3 +1,4 @@
 build/
 node_modules/
 output/
+src/e2e/simulation/generated-simulators/**/*.ts
