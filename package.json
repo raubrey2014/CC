@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "generate.simulators": "./node_modules/typescript/bin/tsc --lib es6,dom --outdir build src/util/generate-simulators.ts && node build/util/generate-simulators.js ./src/e2e/simulation/simulators ./src/e2e/simulation",
     "build.serializer": "./node_modules/typescript/bin/tsc --lib es6,dom --outdir build src/serializer/serializer.ts",
     "run.serializer": "node build/serializer.js",
     "test": "./node_modules/.bin/jest"
