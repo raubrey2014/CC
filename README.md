@@ -84,7 +84,7 @@ To accomplish both the **Parse** and **Generate** steps, we use the [Babel](http
     - [ ] Consider use of @babel/template for code generation
     - [ ] Improve babel typing throughout and consolidate to all `t.*` calls rather than raw node construction
 - [ ] Improved generator types
-    - [ ] Support for async generators
+    - [x] Support for async generators
 - [ ] Improved parameter parsing
     - [x] Support for object pattern (i.e. `function* foo({ a, b }: { a: number, b: number })`
     - [x] Support for array pattern (i.e. `function* foo([a, b]: [number, number])`
