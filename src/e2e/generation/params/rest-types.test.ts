@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* restParameterTest(a: number[], ...b: number[]): Generator<number, number, number> {
@@ -67,8 +67,8 @@ const expectedStateMachine = `class RestParameterTestGenerator {
 }`;
 
 describe('e2e serializer of rest parameter types', () => {
-    it('should serialize rest param types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize rest param types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });

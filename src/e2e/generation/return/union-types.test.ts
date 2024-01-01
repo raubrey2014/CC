@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* unionTypesTest(a: number, b: number): Generator<number | string, number | string, number | string> {
@@ -67,8 +67,8 @@ const expectedStateMachine = `class UnionTypesTestGenerator {
 }`;
 
 describe('e2e serializer of union return types', () => {
-    it('should serialize union return types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize union return types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });

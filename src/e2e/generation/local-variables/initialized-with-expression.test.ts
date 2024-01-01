@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* sum(a: number, b: number): Generator<number, number, number> {
@@ -79,8 +79,8 @@ const expectedStateMachine = `class SumGenerator {
 }`;
 
 describe('e2e serializer', () => {
-    it('should serialize sum', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize sum', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });

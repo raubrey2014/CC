@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* untypedTest(a: number, b: number) {

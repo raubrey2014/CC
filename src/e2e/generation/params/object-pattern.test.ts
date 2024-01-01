@@ -1,30 +1,31 @@
 import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
-function* unionTypesTest(a: number | string, b: number): Generator<number, number, number> {
-    yield 42;
-    yield 42;
+interface Example {
+    a: number;
+}
+function* objectPatternTest({ a }: Example): Generator<number, number, number> {
+    yield a;
     return 42;
 }
 `;
 
-const expectedStateMachine = `class UnionTypesTestGenerator {
+const expectedStateMachine = `class ObjectPatternTestGenerator {
   private state: {
     nextStep: number;
-    a: number | string;
-    b: number;
+    a: any;
   };
-  constructor(a: number | string, b: number) {
+  constructor({
+    a
+  }: Example) {
     this.state = {
       nextStep: 0,
-      a: a,
-      b: b
+      a: a
     };
   }
   saveState(): {
     nextStep: number;
-    a: number | string;
-    b: number;
+    a: any;
   } {
     return {
       ...this.state
@@ -34,8 +35,7 @@ const expectedStateMachine = `class UnionTypesTestGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        a: number | string;
-        b: number;
+        a: any;
       })
     };
   }
@@ -44,17 +44,10 @@ const expectedStateMachine = `class UnionTypesTestGenerator {
       case 0:
         this.state.nextStep = 1;
         return {
-          value: 42,
+          value: this.state.a,
           done: false
         };
       case 1:
-        value;
-        this.state.nextStep = 2;
-        return {
-          value: 42,
-          done: false
-        };
-      case 2:
         value;
         return {
           value: 42,
@@ -66,8 +59,8 @@ const expectedStateMachine = `class UnionTypesTestGenerator {
   }
 }`;
 
-describe('e2e serializer of union parameter types', () => {
-  it('should serialize union param types', () => {
+describe('e2e serializer of object pattern parameter types', () => {
+  it('should serialize object pattern parameter param types', () => {
     const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
     expect(stateMachine).toBe(expectedStateMachine);
   });

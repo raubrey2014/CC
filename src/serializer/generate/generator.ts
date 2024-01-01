@@ -302,7 +302,12 @@ export function generateSerializableStateMachine(generatorComponents: GeneratorC
             t.tsTypeAnnotation(t.tsNumberKeyword()),
         ),
         ...generatorComponents.localVariablesAsProperties,
-        ...generatorComponents.parametersAsProperties.map((parameter) => t.tsPropertySignature(t.identifier(parameter.name), parameter.typeAnnotation)),
+        ...generatorComponents.parametersAsProperties.map((parameter) => ({
+            type: "TSPropertySignature",
+            key: t.identifier(parameter.name),
+            typeAnnotation: parameter.typeAnnotation,
+            optional: parameter.optional,
+        } as t.TSPropertySignature)),
     ] as t.TSPropertySignature[];
 
     const replacer = new Replacer(generatorComponents);

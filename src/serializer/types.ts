@@ -24,6 +24,7 @@ export interface StateMachineStep {
 export interface ParsedParameter {
     name: string;
     typeAnnotation: t.TSTypeAnnotation;
+    optional: boolean;
 }
 
 export interface GeneratorComponents {

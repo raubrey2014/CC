@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 interface SomeInterface {}
@@ -68,8 +68,8 @@ const expectedStateMachine = `class InterfaceTestGenerator {
 }`;
 
 describe('e2e serializer of interface parameter types', () => {
-    it('should serialize interface param types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize interface param types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });
