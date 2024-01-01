@@ -12,6 +12,7 @@ const isGenerator = (node: t.Node): boolean => {
 export function parseGenerator(generator: t.FunctionDeclaration): GeneratorComponents {
     const { yieldType, returnType, nextStepParamType } = parseGeneratorReturnType(generator);
     return {
+        async: generator.async,
         name: generator.id!.name,
         parameters: generator.params,
         parametersAsProperties: parseGeneratorParametersAsProperties(generator),

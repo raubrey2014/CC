@@ -28,6 +28,7 @@ export interface ParsedParameter {
 }
 
 export interface GeneratorComponents {
+    async: boolean;
     name: string;
     parameters: (t.Identifier | t.RestElement | t.Pattern)[];
     yieldType: t.TSType;
