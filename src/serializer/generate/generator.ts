@@ -32,7 +32,7 @@ const localVariableConstructorInstantiation = (declarator: t.VariableDeclarator)
             case "TSBooleanKeyword":
                 return t.booleanLiteral(false);
             case "TSAnyKeyword":
-                return t.buildUndefinedNode();
+                return t.identifier("undefined");
             case "TSArrayType":
                 return t.arrayExpression([]);
             case "TSUnionType":
@@ -43,7 +43,7 @@ const localVariableConstructorInstantiation = (declarator: t.VariableDeclarator)
                 throw new Error("Unsupported local variable declaration to state assignment conversion for given type. " + JSON.stringify(declarator, null, 4));
         }
     } else {
-        return t.buildUndefinedNode();
+        return t.identifier("undefined");
     }
 }
 
