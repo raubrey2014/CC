@@ -237,13 +237,24 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, replac
         }
     });
 
+    const iteratorResult = t.tsTypeReference(t.identifier("IteratorResult"), t.tsTypeParameterInstantiation([
+        generatorComponents.yieldType,
+        generatorComponents.returnType
+    ]));
+    const returnType = generatorComponents.async ?
+        t.tsTypeAnnotation(
+            t.tsTypeReference(t.identifier("Promise"), t.tsTypeParameterInstantiation([
+                iteratorResult
+            ]))
+        ) : t.tsTypeAnnotation(iteratorResult);
+
     return {
         type: "ClassMethod",
         kind: "method",
         computed: false,
         static: false,
         generator: false,
-        async: false,
+        async: generatorComponents.async,
         key: t.identifier("nextStep"),
         params: [
             {
@@ -255,12 +266,7 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, replac
                 }
             }
         ],
-        returnType: t.tsTypeAnnotation(
-            t.tsTypeReference(t.identifier("IteratorResult"), t.tsTypeParameterInstantiation([
-                generatorComponents.yieldType,
-                generatorComponents.returnType
-            ]))
-        ),
+        returnType,
         body: t.blockStatement(
             [
                 {
