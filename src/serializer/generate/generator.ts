@@ -212,7 +212,7 @@ const generateNextStepMethod = (generatorComponents: GeneratorComponents, replac
                     {
                         type: "ObjectProperty",
                         key: t.identifier("value"),
-                        value: step.returnExpression ? replacer.replaceIdentifiersWithStateMemberAccess(step.returnExpression) : null
+                        value: step.returnExpression ? replacer.replaceIdentifiersWithStateMemberAccess(step.returnExpression) : t.tsUndefinedKeyword()
                     } as t.ObjectProperty,
                     t.objectProperty(
                         t.identifier("done"),
