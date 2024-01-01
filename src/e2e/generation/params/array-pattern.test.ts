@@ -1,29 +1,32 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
-interface Example {
-    a: number;
-}
-function* objectBindingTest({ a }: Example): Generator<number, number, number> {
+function* arrayPatternTest([a, b, c]: number[]): Generator<number, number, number> {
     yield a;
     return 42;
 }
 `;
 
-const expectedStateMachine = `class ObjectBindingTestGenerator {
+const expectedStateMachine = `class ArrayPatternTestGenerator {
   private state: {
     nextStep: number;
-    a: number;
+    a: any;
+    b: any;
+    c: any;
   };
-  constructor({ a }: Example) {
+  constructor([a, b, c]: number[]) {
     this.state = {
       nextStep: 0,
-      a: a
+      a: a,
+      b: b,
+      c: c
     };
   }
   saveState(): {
     nextStep: number;
-    a: number;
+    a: any;
+    b: any;
+    c: any;
   } {
     return {
       ...this.state
@@ -33,7 +36,9 @@ const expectedStateMachine = `class ObjectBindingTestGenerator {
     this.state = {
       ...(state as {
         nextStep: number;
-        a: number;
+        a: any;
+        b: any;
+        c: any;
       })
     };
   }
@@ -57,9 +62,8 @@ const expectedStateMachine = `class ObjectBindingTestGenerator {
   }
 }`;
 
-describe('e2e serializer of object binding parameter types', () => {
-  // TODO: add support for object binding parameter types
-  it.skip('should serialize object binding parameter param types', () => {
+describe('e2e serializer of array pattern parameter types', () => {
+  it('should serialize arrat pattern parameter param types', () => {
     const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
     expect(stateMachine).toBe(expectedStateMachine);
   });

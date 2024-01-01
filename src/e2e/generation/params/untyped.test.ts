@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* untypedTest(a, ...b): Generator<number, number, number> {
@@ -12,7 +12,7 @@ const expectedStateMachine = `class UntypedTestGenerator {
   private state: {
     nextStep: number;
     a: any;
-    b: any[];
+    b: any;
   };
   constructor(a, ...b) {
     this.state = {
@@ -24,7 +24,7 @@ const expectedStateMachine = `class UntypedTestGenerator {
   saveState(): {
     nextStep: number;
     a: any;
-    b: any[];
+    b: any;
   } {
     return {
       ...this.state
@@ -35,7 +35,7 @@ const expectedStateMachine = `class UntypedTestGenerator {
       ...(state as {
         nextStep: number;
         a: any;
-        b: any[];
+        b: any;
       })
     };
   }

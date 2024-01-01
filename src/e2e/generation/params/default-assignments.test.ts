@@ -1,4 +1,4 @@
-import { parseAndGenerateStateMachineComponents } from "../base.e2e";
+import { parseAndGenerateStateMachineComponents } from "../../base.e2e";
 
 const generator = `
 function* defaultAssignmentTest(a: number, b: number = 42): Generator<number, number, number> {
@@ -67,8 +67,8 @@ const expectedStateMachine = `class DefaultAssignmentTestGenerator {
 }`;
 
 describe('e2e serializer of complex parameter types', () => {
-    it('should serialize union param types', () => {
-        const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
-        expect(stateMachine).toBe(expectedStateMachine);
-    });
+  it('should serialize union param types', () => {
+    const { stateMachine } = parseAndGenerateStateMachineComponents(generator);
+    expect(stateMachine).toBe(expectedStateMachine);
+  });
 });
